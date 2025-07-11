@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>eBasketball Model Backtest</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap 5 CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #191a20 !important;
+            color: #f9f9f9;
+            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .main-navbar {
+            background: #16181d;
+            border-bottom: 2.5px solid #00b672;
+            box-shadow: 0 1.5px 10px #0008;
+        }
+        .main-navbar .navbar-brand {
+            color: #00b672 !important;
+            font-weight: bold;
+            font-size: 1.5rem;
+            letter-spacing: .01em;
+        }
+        .main-navbar .nav-link {
+            color: #e5e7eb !important;
+            border-radius: 4px;
+            padding: 0.5em 1.05em;
+            margin: 0 .1em;
+            font-weight:600;
+            transition: background .14s, color .14s;
+        }
+        .main-navbar .nav-link.active,
+        .main-navbar .nav-link:focus,
+        .main-navbar .nav-link:hover {
+            background: #00b67222;
+            color: #00b672 !important;
+        }
+        .container {
+            max-width: 1100px;
+        }
+        .ngb-card {
+            background: #23252d;
+            border-radius: 16px;
+            border: 1.5px solid #222;
+            box-shadow: 0 2.5px 18px #0002;
+            margin-bottom: 2rem;
+            padding: 1.2em 1.3em 1em 1.3em;
+        }
+        .statbox {
+            background: #1e222b;
+            border-radius: 10px;
+            padding: .55em 1.2em;
+            color: #00b672;
+            font-weight: 600;
+            font-size: 1.08em;
+            margin-bottom: 1.3em;
+        }
+        .statbox b { color: #00b672; }
+        .statbox span { font-weight: 700; }
+        .ou-over {
+            color: #00b672;
+            background: rgba(0,182,114,0.09);
+            border-radius: 8px;
+            padding: 0.16em 0.5em;
+            font-weight: 700;
+            letter-spacing: .04em;
+        }
+        .ou-under {
+            color: #2491ff;
+            background: rgba(36,145,255,0.10);
+            border-radius: 8px;
+            padding: 0.16em 0.5em;
+            font-weight: 700;
+            letter-spacing: .04em;
+        }
+        .ou-push {
+            color: #aaa;
+            background: rgba(170,170,170,0.09);
+            border-radius: 8px;
+            padding: 0.16em 0.5em;
+            font-weight: 600;
+            letter-spacing: .04em;
+        }
+        .ngb-table th,
+        .ngb-table td {
+            background: transparent !important;
+            color: #e5e7eb;
+            border: none;
+            vertical-align: middle;
+            font-size: 1em;
+            text-align: center;
+        }
+        .ngb-table th {
+            color: #00b672;
+            font-weight: 700;
+            background: #23252d;
+            border: none;
+        }
+        .ngb-table tr {
+            border-bottom: 1px solid #232323;
+            transition: background .12s;
+        }
+        .ngb-table tr:last-child {
+            border-bottom: none;
+        }
+        .ngb-table tr:hover {
+            background: #2e3037;
+        }
+        .winner-odds { color: #00b672; font-weight: 700; }
+        .points { color: #2491ff; font-weight: 700; }
+        .spread { color: #00b672; font-family: monospace; font-weight: 700; }
+        .reasoning {
+            color: #e5e7eb;
+            font-size: .95em;
+            max-width: 230px;
+            white-space: normal;
+            text-align: left;
+            opacity: 0.94;
+        }
+        .correct, .incorrect {
+            font-size: 1.3em;
+            font-weight: bold;
+            padding: 0.13em 0.34em;
+            border-radius: 7px;
+            border: none;
+            display: inline-block;
+        }
+        .correct {
+            color: #00b672 !important;
+            background: rgba(0,182,114,0.13);
+        }
+        .incorrect {
+            color: #ff6363 !important;
+            background: rgba(255,99,99,0.10);
+        }
+        .text-muted {
+            color: #7d8793 !important;
+        }
+        @media (max-width: 900px) {
+            .main-navbar .navbar-brand { font-size: 1.18rem; }
+            .ngb-card { padding: .8em .5em; }
+        }
+        @media (max-width: 767px) {
+            .main-navbar .navbar-brand { font-size: 1rem; }
+            .ngb-card { border-radius: 11px; margin-bottom: 1.1rem;}
+            .ngb-table { font-size: .95em; }
+            .statbox { font-size: .95em; padding: .6em .3em; }
+            .reasoning { font-size: .87em; max-width: 90px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- UNIVERSAL NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark main-navbar mb-4">
+      <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">eBasketball</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon" style="filter: brightness(1.4);"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="mainNav">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint=='index' %}active{% endif %}" href="{{ url_for('index') }}">Results & Fixtures</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint=='odds_dashboard' %}active{% endif %}" href="{{ url_for('odds_dashboard') }}">ML Odds</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint=='backtest' %}active{% endif %}" href="{{ url_for('backtest') }}">Backtest</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint=='standings' %}active{% endif %}" href="{{ url_for('standings') }}">Standings</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
+    <!-- MAIN CONTENT -->
+    <div class="container pb-4">
+        <div class="ngb-card">
+            <div class="statbox mb-2">
+                Mean Absolute Error (Total Points): <span>{{ stats.mae_total }}</span> |
+                MAE (Margin): <span>{{ stats.mae_margin }}</span> |
+                Winner Accuracy: <span>{{ stats.winner_acc }}</span><br>
+                <b>Over/Under:</b>
+                Over: <span class="ou-over">{{ stats.over_pct }}</span> |
+                Under: <span class="ou-under">{{ stats.under_pct }}</span> |
+                Push: <span class="ou-push">{{ stats.push_pct }}</span>
+                <span class="text-muted">(Ideal split: ~50/50 Over/Under)</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table ngb-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Home</th>
+                            <th>Away</th>
+                            <th>Actual</th>
+                            <th>Model Odds</th>
+                            <th>Model Total</th>
+                            <th>Model Handicap</th>
+                            <th>O/U</th>
+                            <th>Correct?</th>
+                            <th>Reasoning</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for m in matchups %}
+                        {% set actual_margin = m.home_score|int - m.away_score|int %}
+                        {% set pred_margin = m.handicap|float %}
+                        {% if (actual_margin > 0 and pred_margin > 0) or (actual_margin < 0 and pred_margin < 0) %}
+                            {% set winner_class = "correct" %}
+                            {% set winner_label = "✔" %}
+                        {% elif actual_margin == 0 and pred_margin == 0 %}
+                            {% set winner_class = "correct" %}
+                            {% set winner_label = "Draw" %}
+                        {% else %}
+                            {% set winner_class = "incorrect" %}
+                            {% set winner_label = "✘" %}
+                        {% endif %}
+                        <tr>
+                            <td>{{ m.date }}</td>
+                            <td>{{ m.time }}</td>
+                            <td>{{ m.home_player }}</td>
+                            <td>{{ m.away_player }}</td>
+                            <td><b>{{ m.home_score }} - {{ m.away_score }}</b></td>
+                            <td class="winner-odds">{{ m.winner_odds }}</td>
+                            <td class="points">{{ m.total_points_pred }}</td>
+                            <td class="spread">{{ m.handicap }}</td>
+                            <td>
+                                {% if m.ou_result == "Over" %}
+                                    <span class="ou-over">Over</span>
+                                {% elif m.ou_result == "Under" %}
+                                    <span class="ou-under">Under</span>
+                                {% else %}
+                                    <span class="ou-push">Push</span>
+                                {% endif %}
+                            </td>
+                            <td class="{{ winner_class }}">{{ winner_label }}</td>
+                            <td class="reasoning">{{ m.reasoning }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% if matchups|length == 0 %}
+                <div class="text-center text-muted py-3">No matches found.</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
