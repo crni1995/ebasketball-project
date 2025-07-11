@@ -1,19 +1,13 @@
 from flask import Flask, render_template, request, url_for
-from league_api import (
-    get_current_season_id,
-    get_fixtures_for_season,
-    parse_fixture
-)
+from fixtures_cache import get_fixtures_and_results, refresh_fixtures_and_results
 from datetime import datetime, timedelta
 from ml_odds import predict_ml_odds_for_upcoming
 from player_profile import get_player_profile_data
-import pickle
-import os
 from collections import defaultdict
 
-from flask_httpauth import HTTPBasicAuth   # <-- NEW
+from flask_httpauth import HTTPBasicAuth
 app = Flask(__name__)
-auth = HTTPBasicAuth()                     # <-- NEW
+auth = HTTPBasicAuth()
 
 # ========== AUTH SECTION ==========
 users = {
@@ -36,42 +30,10 @@ CLUB_NAME_BLACKLIST = [
     "Brooklyn", "Helsinki", "Sevilla", "Krakow", "Dubai"
 ]
 
-DATA_CACHE = "data_cache.pkl"
-CACHE_TTL_MINUTES = 15
-
-def cache_fixtures():
-    now = datetime.now()
-    if os.path.exists(DATA_CACHE):
-        with open(DATA_CACHE, "rb") as f:
-            cache = pickle.load(f)
-        if isinstance(cache, dict) and "fixtures" in cache and "cached_at" in cache:
-            cached_at = cache["cached_at"]
-            if isinstance(cached_at, str):
-                cached_at = datetime.fromisoformat(cached_at)
-            if (now - cached_at) < timedelta(minutes=CACHE_TTL_MINUTES):
-                return cache["fixtures"]
-    print("[CACHE] Refreshing fixture data from source...")
-    season_id = get_current_season_id()
-    all_raw_fixtures = get_fixtures_for_season(season_id)
-    fixtures = [
-        parse_fixture(f) for f in all_raw_fixtures
-        if parse_fixture(f)['date'] is not None
-    ]
-    fixtures.sort(key=lambda x: (x['date'], x['time']))
-    with open(DATA_CACHE, "wb") as f:
-        pickle.dump({
-            "fixtures": fixtures,
-            "cached_at": now.isoformat()
-        }, f)
-    return fixtures
-
-def refresh_fixtures():
-    if os.path.exists(DATA_CACHE):
-        os.remove(DATA_CACHE)
-    return cache_fixtures()
+# ==== Fixtures/Results Helpers (cache logic removed, now using fixtures_cache) ====
 
 def get_all_fixtures():
-    return cache_fixtures()
+    return get_fixtures_and_results()
 
 def filter_by_day(fixtures, mode, played=True):
     today = datetime.now().date()
@@ -215,7 +177,7 @@ def backtest():
     fixtures = get_all_fixtures()
     played = [f for f in fixtures if f["played"] and f.get("home_score") is not None and f.get("away_score") is not None]
     played_sorted = sorted(played, key=lambda x: (x["date"], x["time"]))
-    last_100 = played_sorted[-100:]  # Now using 100 matches
+    last_100 = played_sorted[-100:]
 
     preds = predict_ml_odds_for_upcoming(
         fixtures,
@@ -288,7 +250,7 @@ def player_profile(player_name):
 
 @app.route("/refresh")
 def refresh():
-    refresh_fixtures()
+    refresh_fixtures_and_results()
     return "<h2>Cache refreshed! Go back to <a href='/'>Home</a></h2>"
 
 if __name__ == "__main__":
