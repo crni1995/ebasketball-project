@@ -304,12 +304,16 @@ def predict_ml_odds_for_upcoming(
     old_decay=0.85, 
     h2h_weight=0.32, 
     standings_weight=0.18,
-    elo_scale=18,          # Lower = stronger effect!
-    elo_weight=0.7,        # ELO influence (0.7=strong)
-    model_weight=0.3,      # Model influence
-    bookmaker_margin=0.06  # ~6% total overround, like a bookie
+    elo_scale=18,
+    elo_weight=0.7,
+    model_weight=0.3,
+    bookmaker_margin=0.06
 ):
     from scipy.stats import norm
+    import pickle
+    import json
+    import numpy as np
+
     home_reg = pickle.load(open("home_score_xgb.pkl", "rb"))
     away_reg = pickle.load(open("away_score_xgb.pkl", "rb"))
 
@@ -344,7 +348,7 @@ def predict_ml_odds_for_upcoming(
         away_score_pred = away_preds[i]
         margin_model = home_score_pred - away_score_pred
 
-        # ELO-based margin (more aggressive: lower scale)
+        # ELO-based margin (lower scale = more aggressive)
         margin_elo = (X.iloc[i]["home_elo"] - X.iloc[i]["away_elo"]) / elo_scale
 
         # Weighted margin
@@ -354,22 +358,25 @@ def predict_ml_odds_for_upcoming(
         p_home_win = float(norm.cdf(margin_mu / std_margin))
         p_away_win = 1 - p_home_win
 
-        # Clamp to [0.01, 0.99] to avoid division by zero
+        # Clamp to [0.01, 0.99]
         p_home_win = min(max(p_home_win, 0.01), 0.99)
         p_away_win = min(max(p_away_win, 0.01), 0.99)
 
-        # --- Bookmaker-style odds (true/fair odds + margin) ---
-        fair_home_odds = 1 / p_home_win
-        fair_away_odds = 1 / p_away_win
+        # --- Bookmaker-style odds with proper margin ---
+        fair_probs = [p_home_win, p_away_win]
+        prob_sum = sum(fair_probs)
+        # Calculate what the new total should be (e.g. 1.06 for 6% overround)
+        margin_target = 1.0 + bookmaker_margin
+        scaling = margin_target / prob_sum
+        # Apply scaling to each probability
+        adj_probs = [p * scaling for p in fair_probs]
+        # Avoid division by zero
+        adj_probs = [min(max(p, 0.01), 0.99) for p in adj_probs]
+        home_odds = round(1 / adj_probs[0], 2)
+        away_odds = round(1 / adj_probs[1], 2)
 
-        # Add overround ("bookie margin") equally to both sides
-        overround = (1 + bookmaker_margin)
-        home_odds = round(fair_home_odds * overround, 2)
-        away_odds = round(fair_away_odds * overround, 2)
-
-        # Fill in match fields
         m["winner_odds"] = f"{home_odds} / {away_odds}"
-        m["winner_probs"] = f"{p_home_win*100:.1f}% / {p_away_win*100:.1f}%"
+        m["winner_probs"] = f"{adj_probs[0]*100:.1f}% / {adj_probs[1]*100:.1f}%"
         m["total_points_pred"] = round(home_score_pred + away_score_pred, 1)
         m["handicap"] = f"{margin_mu:+.1f}"
 
