@@ -296,13 +296,31 @@ def train_models(fixtures, n_recent=2000, recency_decay=0.97, old_decay=0.85, h2
 
     return home_reg, away_reg, y_home_train, y_away_train
 
-def predict_ml_odds_for_upcoming(fixtures, upcoming_matches, n_recent=2000, recency_decay=0.97, old_decay=0.85, h2h_weight=0.37, standings_weight=0.16):
+def predict_ml_odds_for_upcoming(
+    fixtures, 
+    upcoming_matches, 
+    n_recent=2000, 
+    recency_decay=0.97, 
+    old_decay=0.85, 
+    h2h_weight=0.32, 
+    standings_weight=0.18,
+    elo_scale=18,          # Lower = stronger effect!
+    elo_weight=0.7,        # ELO influence (0.7=strong)
+    model_weight=0.3,      # Model influence
+    bookmaker_margin=0.06  # ~6% total overround, like a bookie
+):
     from scipy.stats import norm
     home_reg = pickle.load(open("home_score_xgb.pkl", "rb"))
     away_reg = pickle.load(open("away_score_xgb.pkl", "rb"))
 
-    X = extract_features(fixtures, upcoming_matches, n_recent=n_recent, recency_decay=recency_decay, old_decay=old_decay,
-                        h2h_weight=h2h_weight, standings_weight=standings_weight)
+    X = extract_features(
+        fixtures, upcoming_matches, 
+        n_recent=n_recent, 
+        recency_decay=recency_decay, 
+        old_decay=old_decay,
+        h2h_weight=h2h_weight, 
+        standings_weight=standings_weight
+    )
     with open("feature_columns.json") as f:
         feat_order = json.load(f)
     X = X.reindex(columns=feat_order)
@@ -321,42 +339,41 @@ def predict_ml_odds_for_upcoming(fixtures, upcoming_matches, n_recent=2000, rece
     std_away = np.std(y_away_train)
     std_margin = np.sqrt(std_home**2 + std_away**2)
 
-    # New: Map ELO diff to a margin in realistic range (about 40 pts = 1 point margin)
-    def elo_margin(home_elo, away_elo, scale=40):
-        return (home_elo - away_elo) / scale
-
     for i, m in enumerate(upcoming_matches):
         home_score_pred = home_preds[i]
         away_score_pred = away_preds[i]
         margin_model = home_score_pred - away_score_pred
 
-        # ELO-based margin
-        elo_diff = X.iloc[i]["home_elo"] - X.iloc[i]["away_elo"]
-        margin_elo = elo_margin(X.iloc[i]["home_elo"], X.iloc[i]["away_elo"], scale=34)
+        # ELO-based margin (more aggressive: lower scale)
+        margin_elo = (X.iloc[i]["home_elo"] - X.iloc[i]["away_elo"]) / elo_scale
 
-        # Final margin is 65% model, 35% ELO (tweak as you like)
-        margin_mu = 0.65 * margin_model + 0.35 * margin_elo
+        # Weighted margin
+        margin_mu = model_weight * margin_model + elo_weight * margin_elo
 
-        # Probability Home wins (margin > 0)
+        # Raw model probabilities
         p_home_win = float(norm.cdf(margin_mu / std_margin))
         p_away_win = 1 - p_home_win
 
-        target_odd = 1.85
-        target_overround = (1 / target_odd) * 2  # ≈ 1.081
-        probs = [p_home_win, p_away_win]
-        prob_sum = sum(probs)
-        scaling = target_overround / prob_sum
-        adj_probs = [p * scaling for p in probs]
-        home_odds = round(1 / adj_probs[0], 2)
-        away_odds = round(1 / adj_probs[1], 2)
+        # Clamp to [0.01, 0.99] to avoid division by zero
+        p_home_win = min(max(p_home_win, 0.01), 0.99)
+        p_away_win = min(max(p_away_win, 0.01), 0.99)
 
+        # --- Bookmaker-style odds (true/fair odds + margin) ---
+        fair_home_odds = 1 / p_home_win
+        fair_away_odds = 1 / p_away_win
+
+        # Add overround ("bookie margin") equally to both sides
+        overround = (1 + bookmaker_margin)
+        home_odds = round(fair_home_odds * overround, 2)
+        away_odds = round(fair_away_odds * overround, 2)
+
+        # Fill in match fields
         m["winner_odds"] = f"{home_odds} / {away_odds}"
+        m["winner_probs"] = f"{p_home_win*100:.1f}% / {p_away_win*100:.1f}%"
         m["total_points_pred"] = round(home_score_pred + away_score_pred, 1)
         m["handicap"] = f"{margin_mu:+.1f}"
 
-        # ==========================
-        # REASONING GENERATION HERE
-        # ==========================
+        # Reasoning
         X_row = X.iloc[i]
         reasons = []
         if abs(X_row["home_elo"] - X_row["away_elo"]) > 20:
@@ -364,19 +381,16 @@ def predict_ml_odds_for_upcoming(fixtures, upcoming_matches, n_recent=2000, rece
                 reasons.append(f"Home ELO advantage ({int(X_row['home_elo'])} vs {int(X_row['away_elo'])})")
             else:
                 reasons.append(f"Away ELO advantage ({int(X_row['away_elo'])} vs {int(X_row['home_elo'])})")
-        if abs(X_row["h2h_margin"]) > 3 and X_row["h2h_count"] > 5:
+        if abs(X_row.get("h2h_margin", 0)) > 3 and X_row.get("h2h_count", 0) > 5:
             side = "Home" if X_row["h2h_margin"] > 0 else "Away"
             reasons.append(f"{side} has H2H avg margin {X_row['h2h_margin']:+.1f}")
-        if abs(X_row["home_margin"] - X_row["away_margin"]) > 3:
-            side = "Home" if X_row["home_margin"] > X_row["away_margin"] else "Away"
-            reasons.append(f"{side} recent avg win margin {max(X_row['home_margin'], X_row['away_margin']):+.1f}")
-        if abs(X_row["home_wr"] - X_row["away_wr"]) > 0.12:
+        if abs(X_row.get("home_wr", 0) - X_row.get("away_wr", 0)) > 0.12:
             side = "Home" if X_row["home_wr"] > X_row["away_wr"] else "Away"
             reasons.append(f"{side} recent win rate {max(X_row['home_wr'], X_row['away_wr'])*100:.0f}%")
-        if abs(X_row["home_season_winrate"] - X_row["away_season_winrate"]) > 0.06:
+        if abs(X_row.get("home_season_winrate", 0) - X_row.get("away_season_winrate", 0)) > 0.06:
             side = "Home" if X_row["home_season_winrate"] > X_row["away_season_winrate"] else "Away"
             reasons.append(f"{side} better season winrate")
-        if abs(X_row["home_league_rank"] - X_row["away_league_rank"]) > 0.04:
+        if abs(X_row.get("home_league_rank", 0) - X_row.get("away_league_rank", 0)) > 0.04:
             side = "Home" if X_row["home_league_rank"] > X_row["away_league_rank"] else "Away"
             reasons.append(f"{side} higher league rank")
         if not reasons:

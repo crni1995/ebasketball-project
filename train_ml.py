@@ -43,8 +43,8 @@ def auto_train():
         n_recent=2000,
         recency_decay=0.97,
         old_decay=0.85,
-        h2h_weight=0.37,
-        standings_weight=0.16
+        h2h_weight=0.32,
+        standings_weight=0.18
     )
     set_last_trained_fixture({"date": lp_date, "time": lp_time})
     print("Training complete! Models and feature order saved.")
