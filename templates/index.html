@@ -82,27 +82,31 @@
       border-color: #00d4ff;
     }
 
-    .table {
-      margin: 0;
+    /* Fix white background in all table sections */
+    table,
+    .table,
+    .table th,
+    .table td,
+    .table thead,
+    .table tbody,
+    .table tr {
+      background-color: #18232f !important;
+      color: #e5e7eb !important;
+      border-color: #2a2f3a !important;
+    }
+
+    .table tr:hover {
+      background-color: #233041 !important;
     }
 
     .ngb-table th {
-      color: #00d4ff;
       font-weight: 700;
       font-size: 0.95rem;
-      background: #1a2230;
-      border-bottom: 1px solid #2a2f3a;
     }
 
     .ngb-table td {
       font-size: 0.95rem;
-      color: #dbeafe;
       vertical-align: middle;
-      border-top: 1px solid #2a2f3a;
-    }
-
-    .ngb-table tr:hover {
-      background: #223041;
     }
 
     .ngb-label {

@@ -38,7 +38,7 @@
     .nav-link:hover,
     .nav-link.active {
       color: #00d4ff !important;
-      background: #00d4ff20;
+      background: #00d4ff1a;
       border-radius: 5px;
     }
 
@@ -100,6 +100,7 @@
     .wr-strong {
       color: #00f2ff !important;
       font-weight: 800;
+      font-family: monospace;
     }
 
     a.link-success {
@@ -181,7 +182,7 @@
                 <td>{{ p.draws }}</td>
                 <td>{{ p.losses }}</td>
                 <td>
-                  {%- set wr = 100*p.winrate -%}
+                  {% set wr = 100*p.winrate %}
                   <span class="{% if wr >= 70 %}wr-strong{% endif %}">{{ '%.1f' % wr }}%</span>
                 </td>
                 <td>{{ p.points_for }}</td>
@@ -215,7 +216,7 @@
                 <td>{{ c.draws }}</td>
                 <td>{{ c.losses }}</td>
                 <td>
-                  {%- set wr = 100*c.winrate -%}
+                  {% set wr = 100*c.winrate %}
                   <span class="{% if wr >= 70 %}wr-strong{% endif %}">{{ '%.1f' % wr }}%</span>
                 </td>
                 <td>{{ c.points_for }}</td>
