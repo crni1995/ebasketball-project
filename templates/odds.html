@@ -1,160 +1,194 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8">
-    <title>eBasketball ML Odds</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap 5 CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: #191a20;
-            color: #e6e6e6;
-            font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
-        }
-        .main-navbar {
-            background: #16181d;
-            border-bottom: 2.5px solid #00b672;
-        }
-        .main-navbar .navbar-brand {
-            color: #00b672 !important;
-            font-weight: bold;
-            font-size: 1.5rem;
-        }
-        .main-navbar .nav-link {
-            color: #e5e7eb !important;
-            font-weight:600;
-            border-radius: 4px;
-            margin: 0 .1em;
-        }
-        .main-navbar .nav-link.active,
-        .main-navbar .nav-link:focus,
-        .main-navbar .nav-link:hover {
-            background: #00b67222;
-            color: #00b672 !important;
-        }
-        .ngb-card {
-            background: #23252d;
-            border-radius: 13px;
-            border: 1.5px solid #222;
-            margin-bottom: 2rem;
-            padding: 1.1em 1.3em 1em 1.3em;
-        }
-        .ngb-table th, .ngb-table td {
-            background: transparent !important;
-            color: #e6e6e6;
-            border: none;
-            text-align: center;
-            vertical-align: middle;
-            font-size: 1em;
-        }
-        .ngb-table th {
-            color: #00b672;
-            font-weight: 700;
-        }
-        .ngb-table tr {
-            border-bottom: 1px solid #232323;
-        }
-        .ngb-table tr:last-child {
-            border-bottom: none;
-        }
-        .winner-odds { color: #00b672; font-weight: 700; }
-        .points { color: #2491ff; font-weight: 700; }
-        .spread { color: #00b672; font-family: monospace; font-weight: 700; }
-        .reasoning-cell {
-            color: #e5e7eb;
-            font-size: .95em;
-            text-align: left;
-            word-break: break-word;
-            opacity: 0.97;
-        }
-        @media (max-width: 767px) {
-            .main-navbar .navbar-brand { font-size: 1.1rem; }
-            .ngb-card { padding: .7em .4em; }
-            .ngb-table { font-size: .95em; }
-        }
-    </style>
+  <meta charset="utf-8">
+  <title>eBasketball ML Odds</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      background: #121416;
+      color: #f0f2f5;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .navbar {
+      background: #1a1c1f;
+      border-bottom: 2px solid #00b672;
+    }
+
+    .navbar-brand {
+      color: #00b672 !important;
+      font-weight: 700;
+      font-size: 1.6rem;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    .nav-link {
+      color: #d1d5db !important;
+      font-weight: 600;
+      margin: 0 0.3rem;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: #00b672 !important;
+      background: #00b67220;
+      border-radius: 5px;
+    }
+
+    .container {
+      max-width: 1080px;
+    }
+
+    .ngb-card {
+      background: #1e2024;
+      border: 1px solid #2b2d31;
+      border-radius: 14px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .ngb-table th {
+      color: #00b672;
+      font-weight: 700;
+      font-size: 0.95rem;
+      background: #1a1c1f;
+      border-bottom: 1px solid #2b2d31;
+      text-align: center;
+    }
+
+    .ngb-table td {
+      font-size: 0.95rem;
+      color: #e2e4e9;
+      text-align: center;
+      vertical-align: middle;
+      border-top: 1px solid #2b2d31;
+    }
+
+    .ngb-table tr:hover {
+      background: #2c2f35;
+    }
+
+    .winner-odds {
+      color: #00b672;
+      font-weight: 700;
+    }
+
+    .points {
+      color: #2491ff;
+      font-weight: 700;
+    }
+
+    .spread {
+      color: #00b672;
+      font-family: monospace;
+      font-weight: 700;
+    }
+
+    .reasoning-cell {
+      color: #d1d5db;
+      font-size: 0.9rem;
+      text-align: left;
+      white-space: normal;
+      word-break: break-word;
+      max-width: 240px;
+      margin: auto;
+    }
+
+    .text-muted {
+      color: #7d8793 !important;
+    }
+
+    @media (max-width: 767px) {
+      .navbar-brand { font-size: 1.3rem; }
+      .ngb-card { padding: 1rem; }
+      .ngb-table { font-size: 0.92rem; }
+      .reasoning-cell { font-size: 0.85rem; max-width: 120px; }
+    }
+  </style>
 </head>
 <body>
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark main-navbar mb-4">
-      <div class="container">
-        <a class="navbar-brand" href="{{ url_for('index') }}">eBasketball</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="mainNav">
-          <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
-            <li class="nav-item">
-              <a class="nav-link {% if request.endpoint=='index' %}active{% endif %}" href="{{ url_for('index') }}">Results & Fixtures</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.endpoint=='odds_dashboard' %}active{% endif %}" href="{{ url_for('odds_dashboard') }}">ML Odds</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.endpoint=='backtest' %}active{% endif %}" href="{{ url_for('backtest') }}">Backtest</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link {% if request.endpoint=='standings' %}active{% endif %}" href="{{ url_for('standings') }}">Standings</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
 
-    <!-- MAIN CONTENT -->
-    <div class="container pb-4">
-        <div class="ngb-card">
-            <div class="table-responsive">
-                <table class="table ngb-table align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Time</th>
-                            <th>Home</th>
-                            <th></th>
-                            <th>Away</th>
-                            <th>Winner Odds</th>
-                            <th>Total Points</th>
-                            <th>Handicap</th>
-                            <th>Reasoning</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    {% for m in upcoming %}
-                        <tr>
-                            <td>{{ m.date }}</td>
-                            <td>{{ m.time }}</td>
-                            <td>
-                                <b>{{ m.home_club }}</b>
-                                {% if m.home_player %}<span class="text-muted"> ({{ m.home_player }})</span>{% endif %}
-                            </td>
-                            <td style="color:#00b672;font-weight:700;">vs</td>
-                            <td>
-                                <b>{{ m.away_club }}</b>
-                                {% if m.away_player %}<span class="text-muted"> ({{ m.away_player }})</span>{% endif %}
-                            </td>
-                            <td class="winner-odds">
-                                {{ m.winner_odds or '-' }}
-                            </td>
-                            <td class="points">
-                                {{ m.total_points_pred or '-' }}
-                            </td>
-                            <td class="spread">
-                                {{ m.handicap or '-' }}
-                            </td>
-                            <td class="reasoning-cell">
-                                {{ m.reasoning or '-' }}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            {% if upcoming|length == 0 %}
-                <div class="text-center text-muted py-3">No upcoming fixtures found.</div>
-            {% endif %}
-        </div>
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg navbar-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('index') }}">eBasketball</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon" style="filter: brightness(1.4);"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="mainNav">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='index' %}active{% endif %}" href="{{ url_for('index') }}">Results & Fixtures</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='odds_dashboard' %}active{% endif %}" href="{{ url_for('odds_dashboard') }}">ML Odds</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='backtest' %}active{% endif %}" href="{{ url_for('backtest') }}">Backtest</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint=='standings' %}active{% endif %}" href="{{ url_for('standings') }}">Standings</a>
+        </li>
+      </ul>
     </div>
+  </div>
+</nav>
+
+<!-- MAIN CONTENT -->
+<div class="container pb-4">
+  <div class="ngb-card">
+    <div class="table-responsive">
+      <table class="table ngb-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Home</th>
+            <th></th>
+            <th>Away</th>
+            <th>Winner Odds</th>
+            <th>Total Points</th>
+            <th>Handicap</th>
+            <th>Reasoning</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in upcoming %}
+          <tr>
+            <td>{{ m.date }}</td>
+            <td>{{ m.time }}</td>
+            <td>
+              <b>{{ m.home_club }}</b>
+              {% if m.home_player %}<span class="text-muted"> ({{ m.home_player }})</span>{% endif %}
+            </td>
+            <td class="fw-bold" style="color:#00b672;">vs</td>
+            <td>
+              <b>{{ m.away_club }}</b>
+              {% if m.away_player %}<span class="text-muted"> ({{ m.away_player }})</span>{% endif %}
+            </td>
+            <td class="winner-odds">{{ m.winner_odds or '-' }}</td>
+            <td class="points">{{ m.total_points_pred or '-' }}</td>
+            <td class="spread">{{ m.handicap or '-' }}</td>
+            <td class="reasoning-cell">{{ m.reasoning or '-' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if upcoming|length == 0 %}
+    <div class="text-center text-muted py-3">No upcoming fixtures found.</div>
+    {% endif %}
+  </div>
+</div>
+
 </body>
 </html>
