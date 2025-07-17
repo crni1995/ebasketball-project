@@ -9,16 +9,6 @@ from flask_httpauth import HTTPBasicAuth
 app = Flask(__name__)
 auth = HTTPBasicAuth()
 
-# ========== AUTH SECTION ==========
-users = {
-    "admin": "admin"  # Change this!
-}
-
-@auth.get_password
-def get_pw(username):
-    if username in users:
-        return users.get(username)
-    return None
 
 # ==== Blacklists ====
 PLAYER_NAME_BLACKLIST = [
