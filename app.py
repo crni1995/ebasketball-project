@@ -96,7 +96,6 @@ def compute_standings(fixtures, key="player"):
 # ==== ROUTES ==== 
 
 @app.route("/")
-@auth.login_required
 def index():
     fixtures = get_all_fixtures()
     results_day = request.args.get('results_day', 'all')
@@ -112,7 +111,6 @@ def index():
     )
 
 @app.route("/standings")
-@auth.login_required
 def standings():
     fixtures = get_all_fixtures()
     player_standings = compute_standings(fixtures, key="player")
@@ -137,7 +135,6 @@ def standings():
     )
 
 @app.route("/odds")
-@auth.login_required
 def odds_dashboard():
     fixtures = get_all_fixtures()
     today = datetime.now().date()
@@ -162,7 +159,6 @@ def odds_dashboard():
     )
 
 @app.route("/backtest")
-@auth.login_required
 def backtest():
     fixtures = get_all_fixtures()
     played = [f for f in fixtures if f["played"] and f.get("home_score") is not None and f.get("away_score") is not None]
@@ -232,7 +228,6 @@ def backtest():
     return render_template("backtest.html", matchups=matchups, stats=stats)
 
 @app.route("/player/<player_name>")
-@auth.login_required
 def player_profile(player_name):
     fixtures = get_all_fixtures()
     profile = get_player_profile_data(player_name, fixtures)
